@@ -1,0 +1,70 @@
+local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local messages = { "메시지1", "메시지2", "메시지3" } -- 예시 메시지
+local interval = 2.3 -- 메시지를 전송할 간격 (초)
+local isChatting = false -- 채팅 상태를 나타내는 변수
+local chatThread -- 채팅을 위한 스레드
+local lastMessage = nil -- 마지막으로 전송한 메시지
+
+local function sendMessage(message)
+    local args = { message, "All" } -- FireServer에 전달할 인자
+    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
+end
+
+local function startChat()
+    isChatting = true
+    chatThread = coroutine.create(function()
+        while isChatting do
+            local randomIndex
+            local messageToSend
+            repeat
+                randomIndex = math.random(1, #messages)
+                messageToSend = messages[randomIndex]
+            until messageToSend ~= lastMessage -- 마지막 메시지와 다를 때까지 반복
+            sendMessage(messageToSend)
+            lastMessage = messageToSend -- 현재 메시지를 마지막 메시지로 저장
+            wait(interval)
+        end
+    end)
+    coroutine.resume(chatThread)
+end
+
+local function stopChat()
+    isChatting = false
+end
+
+-- UI 생성
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+frame.BackgroundColor3 = Color3.new(1, 1, 1)
+
+local onButton = Instance.new("TextButton", frame)
+onButton.Size = UDim2.new(1, 0, 0.5, 0)
+onButton.Position = UDim2.new(0, 0, 0, 0)
+onButton.Text = "채팅 시작"
+onButton.BackgroundColor3 = Color3.new(0, 1, 0)
+
+local offButton = Instance.new("TextButton", frame)
+offButton.Size = UDim2.new(1, 0, 0.5, 0)
+offButton.Position = UDim2.new(0, 0, 0.5, 0)
+offButton.Text = "채팅 중지"
+offButton.BackgroundColor3 = Color3.new(1, 0, 0)
+
+-- 버튼 클릭 이벤트
+onButton.MouseButton1Click:Connect(function()
+    if not isChatting then
+        startChat()
+        onButton.Text = "채팅 중지"
+    end
+end)
+
+offButton.MouseButton1Click:Connect(function()
+    if isChatting then
+        stopChat()
+        onButton.Text = "채팅 시작"
+    end
+end)
