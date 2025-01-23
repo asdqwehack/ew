@@ -8,7 +8,7 @@ local isActive = false
 local isMinimized = false
 
 local function executeCommand(command)
-    local targetCharacter = Players[targetPlayerName] and Players[targetPlayerName].Character
+    local targetCharacter = character
     if not targetCharacter then return end
 
     if command == "Left face." then
