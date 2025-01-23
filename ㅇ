@@ -1,130 +1,454 @@
-local TextChatService = game:GetService("TextChatService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
-local interval = 7.2 -- 메시지를 전송할 간격 (초)
-local isChatting = false -- 채팅 상태를 나타내는 변수
-local chatThread -- 채팅을 위한 스레드
-local lastMessage = nil -- 마지막으로 전송한 메시지
+local character = player.Character or player.CharacterAdded:Wait()
+local targetPlayerName = ""
+local isActive = false
+local isMinimized = false
 
-local messages = {
-    "쓰레기새끼야더러운새끼야버러지새끼야거러지새끼야스레기같은새기야좆같은새기",
-    "개새끼야미친새기야좆같은새기야좆같은버러지새끼야거러지새기야",
-    "호로개새기야미친새기야개새기야미친새기야호로스레기새기야병신같은새기야",
-    "호로개새끼야미친스레기새끼야쓰레기같은새끼야호로꺠새새끼야호로스레기미친새기야",
-    "개종자새끼야세균새끼야곰팡이새끼야호로새끼야쓰레기새끼야더러운새끼야미종자새기야",
-    "개새기야개좆같은새기야새기야더러운개새기야미친새기야개새기야시발새기야스레종자새기야",
-    "좆같은버러지새끼야개새끼야미친새기야좆같은새기야좆같은버러지새끼야거러지새기야",
-    "야라이미친새기야고아새기야미친색스래기새기야개고아색야그지깽깽이새기야호로새기야느리비리한새기야",
-    "개고아새기야미친새기야스래기새기야애미애비갖다패버린스래기새기야불구새기야",
-    "개장애인새기야스래기새기야개고아새기야기아새기야농아새기야농따색야십새기야",
-    "개장애인새기야버러지색야새기야십새기야스래기새기애개고아새기야미친새기야또라이새기야",
-    "개장애인새기야호로새기야미친새기야십새기야고아새기야스래기새기얏발새기야호로새기야",
-    "개시발새기야호로새기야고아새기야기아새기야농아새기야농따새기야십새기야스래기새기야애미애비뒤진새기여",
-    "개좆같은새기야호로새기야버러지새기야거러지새기야머저리새기야개고아새기야좆밥련새기야개장애인새기야",
-    "개십새기야고아새기야개장애인새기야애미뒤진새기야애비도뒤지내식야손가락개장애인새기야버러지새기야",
-    "개장애인새기야십새기야고아새기야개장애인새기야애미애비싸그리뒤진새기야고아새기야미친새기야",
-    "개시발새기야고아새기야미친새기야스래기새기야개고아새기야그지새기야고난한새기야비곤한새기야스래기새기야",
-    "개장애인새기야십새기야버러지새기야거러지새기야머저리새기야개십새기야고아새기야기형아새기야개자폐아새기야",
-    "개십새기야고아새기여고아새기십새기야시발새기야스래기새기야기형아새기야문제아새기야버러지새기야거러지새기야",
-    "개십새기야버러지새기야거러지새기야떨거지새기야노숙자새기야농아새기야농따새기야애미애비불구된십새기야",
-    "호로새기야느리비리한새기야뇌전증온새기얏빗개이야개새기야미친새기야스래기새기야개고아새기야떠거지새기야",
-    "개좆같은새기야십새기야개장애인새기야뇌전증옹ㄴ개십새기야시발새기야고아새기야미친새깅기아새기야걸랭이새기야",
-    "애미뒤진새기야고아새기야기아새기야농아새기야농따새기야십새기야버러새기야개장애이새기야냄새나느노숙자새기야",
-    "개미친새기야스래기새기야정신병자새기야정신반쯤돈새기얏비새기야스래기새기야덜거지새기야노숙자새기야농따새기야",
-    "십새기야버러지새기야거러지시개이먀저ㅓ리새기얏비새기야느리비리한새기야장애이새기야병신새기야",
-    "미친새기야쓰래기새기야기형아새기야농아새기야농따새기야개장애인새기야버러지새기야개고아새기야십새기야",
-    "개장애인새기야버러지새기얌머저리새기야멍청한새기야십새기야스래기새기야개고아새기야기아새기야버러지새기야농아새기야기아새기야",
-    "개미친새기야스래기새기야버러지새기야걸랭이새기야느리비리한새기야게으른새기야시발새기야고아새기야문제아새기야기아새기야",
-    "개고아새기야십새기야거렁뱅이새기야거러지새기얌친새기야스래기새기야개고아새기야기아새기야농아새기야농따새기야",
-    "병신새끼야개새기야시발새기야병신새기야고아새끼야개거지개대가리새끼야개자페아대가리새끼야개거지개대가리새끼야개거러지대가리새끼야고아새끼야",
-    "병신새기야거지새기야스래기새기야미친새기야스래기새기야고아새기야기아새기야스래기새기야개병신새기야거지새기야",
-    "개머저리개대가리새끼야미아대가리새끼야고아새끼야거지새끼야고아새끼야개십새끼야고아새끼야개말대가리새끼야개거지새끼야고아새끼야개시바랫끼야개좆대가리새끼",
-    "고아새끼야개병신대가리새끼야개좆병신고아개대가리새끼야개자페아대가리새끼야십미친대가리개버러지새끼야고아새끼야거지새끼야고아새끼야고자새끼야개시바랫끼야개버러지새끼야",
-    "조무래기대가리새끼야고아새끼야개자페아새끼야호로새끼야고아새끼야개시발대가리새끼야개새끼야개십새기야미친새기야조무래기새기야개고아새기야",
-    "애미이비개버라지스래기내미이지개고애스래기애미에비게버라지스래기애미애비게버라지스레기시발스래기새기어가라지그래기애비애비쓰레기새끼야",
-    "개버라지스레기애미애비게거아스레기애미애비타진개버러지장애개거아스래기새기야애미애비뒤진대가리하자난새기야",
-    "버러지새기야하등한새기야하등한새기야하등한새기야빡대가리새기또라이새기야자폐아농아새기야",
-    "좆밥새기야미친새기야머저리새기야조루새끼좆밥년패륜아새기병신새기야조루새끼머저리새기야",
-    "야미친새기야또라이새기야고아새기야조루새끼호로새기야애미뒤진새기야좆밥새기야",
-    "미친새기야무능한새기야애미뒤진새기야dk조루새끼버러지새기야좆밥년또라이새기야호로새기야",
-    "버러지새기야미친새기야빡대가리새기야농아새기야개십새기야고아새기야미친새기야",
-    "씨발새기야빡대가리새기야개등신새기야빡대가리새기야씨발새기야미친새기야패륜아새기좆밥년",
-    "또라이새기야홍어새기야무능한새기야애미뒤진새기야개스래기새기야십새기야스래기새기야개고아새기약아새기야",
-    "병신새기야머저리새기야패륜아새기조루새끼병신새기야좆밥새기야병신새기야씹등신새기야빡대가리새기야조루새끼씨발새기야쓰레기새기야",
-    "씨발새기야빡대가리새기야개등신새기야빡대가리새기야씨발새기야미친새기야패륜아새기좆밥년또라이새기야",
-    "홍어새기야무능한새기야애미뒤진새기야애미뒤진새기야애비도뒤진새기야개장애인새기야찐따새기야",
-    "개호로새기야고아새기야미친새기야개십새기야스래기새기야개고아새기야십새기야개스래기새기야애미애비사그리뒤진새기야",
-    "호로새기야시발새기야느리비리한새기야개장애인새기야스래기새기야버러지새기야거러지새기야머저리새기야멍청한새기야십새기야개좆같은새기야",
-    "개병신애미뒤진새기야애미애비사그리척살된개보지개장애인허벌보지개병신버러지새기야머저리새기야십새기야개병신새끼야",
-    "개장애인버러지새기야머저리새기야기아새기야애미애비뒤진새기야스래기새기야허벌보지새기야스래기새기야십새기야",
-    "개병신새기야시발새기야고아색야기아새기야미친새기야개스랙새기야패륜아새기야좆밥새기야머저리새기야사그리뒤진새기야",
-    "스래기새기야버러지새기야머저리새기야거러지새기야십새기야스래기새기야버러지새기야개장애인새기야좆같은새기야"
+local function executeCommand(command)
+    local targetCharacter = character
+    if not targetCharacter then return end
 
-}
-
-local function sendMessage(message)
-    local args = { message, "All" } -- FireServer에 전달할 인자
-    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
+    if command == "좌향 좌." then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(90), 0))
+    elseif command == "우향 우." then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(-90), 0))
+    elseif command == "앞을 봐." then
+        local currentPos = targetCharacter.PrimaryPart.Position
+        local cameraLookVector = workspace.CurrentCamera.CFrame.LookVector
+        local targetLookVector = Vector3.new(cameraLookVector.X, 0, cameraLookVector.Z).Unit
+        targetCharacter:SetPrimaryPartCFrame(CFrame.new(currentPos, currentPos + targetLookVector))
+    elseif command == "좌향 우." then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(45), 0))
+    elseif command == "우향 좌." then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(-45), 0))
+    elseif command == "뒤를 봐" then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(180), 0))
+		 elseif command == "뒤로 돌아." then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(180), 0))  elseif command == "우향 우." then
+       elseif command == "좌향 좌. " then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(90), 0))
+    elseif command == "우향 우. " then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(-90), 0))
+    elseif command == "앞을 봐. " then
+        local currentPos = targetCharacter.PrimaryPart.Position
+        local cameraLookVector = workspace.CurrentCamera.CFrame.LookVector
+        local targetLookVector = Vector3.new(cameraLookVector.X, 0, cameraLookVector.Z).Unit
+        targetCharacter:SetPrimaryPartCFrame(CFrame.new(currentPos, currentPos + targetLookVector))
+    elseif command == "좌향 우. " then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(45), 0))
+    elseif command == "우향 좌. " then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(-45), 0))
+    elseif command == "뒤를 봐. " then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(180), 0))
+		 elseif command == "뒤로 돌아. " then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(180), 0))
+    end
 end
 
-local function startChat()
-    isChatting = true
-    chatThread = coroutine.create(function()
-        while isChatting do
-            local randomIndex
-            local messageToSend
-            repeat
-                randomIndex = math.random(1, #messages + #chatMessages) -- 메시지 목록의 크기를 조정
-                if randomIndex <= #messages then
-                    messageToSend = messages[randomIndex]
-                else
-                    messageToSend = chatMessages[randomIndex - #messages] -- chatMessages에서 메시지 선택
+local function onChatMessage(newPlayer, message)
+    if newPlayer.Name == targetPlayerName and isActive and not string.match(message, "^/team ") then
+        wait(0.8)
+        executeCommand(message)
+    end
+end
+
+local function createModernUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CommandUI"
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 350, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 144, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(135, 206, 235))
+    })
+    gradient.Rotation = 45
+    gradient.Parent = mainFrame
+
+    local gradientTween = TweenService:Create(gradient, TweenInfo.new(
+        3,
+        Enum.EasingStyle.Linear,
+        Enum.EasingDirection.InOut,
+        -1,
+        true
+    ), {
+        Rotation = 225
+    })
+    gradientTween:Play()
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = mainFrame
+
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    titleBar.BackgroundTransparency = 0.5
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 10)
+    titleCorner.Parent = titleBar
+
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(1, -100, 1, 0)
+    titleText.Position = UDim2.new(0, 20, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = "밥밥부대 자동 시험"
+    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleText.TextSize = 18
+    titleText.Font = Enum.Font.GothamBold
+    titleText.Parent = titleBar
+
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -35, 0, 5)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+    closeButton.Text = "×"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 20
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Parent = mainFrame
+
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+    minimizeButton.Position = UDim2.new(1, -70, 0, 5)
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(45, 120, 255)
+    minimizeButton.Text = "-"
+    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeButton.TextSize = 20
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.Parent = mainFrame
+
+    local function addCorner(button)
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = button
+    end
+
+    addCorner(closeButton)
+    addCorner(minimizeButton)
+
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Size = UDim2.new(1, 0, 1, -40)
+    contentContainer.Position = UDim2.new(0, 0, 0, 40)
+    contentContainer.BackgroundTransparency = 1
+    contentContainer.Parent = mainFrame
+
+    local inputFrame = Instance.new("Frame")
+    inputFrame.Size = UDim2.new(0.9, 0, 0, 45)
+    inputFrame.Position = UDim2.new(0.05, 0, 0, 20)
+    inputFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    inputFrame.BackgroundTransparency = 0.2
+    inputFrame.BorderSizePixel = 0
+    inputFrame.Parent = contentContainer
+
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 8)
+    inputCorner.Parent = inputFrame
+
+    local targetInput = Instance.new("TextBox")
+    targetInput.Size = UDim2.new(0.9, 0, 0.8, 0)
+    targetInput.Position = UDim2.new(0.05, 0, 0.1, 0)
+    targetInput.BackgroundTransparency = 1
+    targetInput.Text = ""
+    targetInput.PlaceholderText = "타겟 플레이어 이름"
+    targetInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    targetInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 160)
+    targetInput.TextSize = 16
+    targetInput.Font = Enum.Font.GothamMedium
+    targetInput.Parent = inputFrame
+
+    local function autocompletePlayerName()
+        local inputText = targetInput.Text:lower()
+        if #inputText >= 3 then  
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player.Name:lower():sub(1, #inputText) == inputText then
+                    targetInput.Text = player.Name
+                    targetInput.CursorPosition = #player.Name + 1
+                    return
                 end
-            until messageToSend ~= lastMessage -- 마지막 메시지와 다를 때까지 반복
-            
-            sendMessage(messageToSend)
-            lastMessage = messageToSend -- 현재 메시지를 마지막 메시지로 저장
-            wait(interval)
+            end
+        end
+    end
+
+    targetInput:GetPropertyChangedSignal("Text"):Connect(autocompletePlayerName)
+
+    local statusFrame = Instance.new("Frame")
+    statusFrame.Size = UDim2.new(0.9, 0, 0, 40)
+    statusFrame.Position = UDim2.new(0.05, 0, 0, 80)
+    statusFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    statusFrame.BackgroundTransparency = 0.2
+    statusFrame.BorderSizePixel = 0
+    statusFrame.Parent = contentContainer
+
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 8)
+    statusCorner.Parent = statusFrame
+
+    local statusIndicator = Instance.new("Frame")
+    statusIndicator.Size = UDim2.new(0, 12, 0, 12)
+    statusIndicator.Position = UDim2.new(0.05, 0, 0.5, -6)
+    statusIndicator.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+    statusIndicator.Parent = statusFrame
+
+    local indicatorCorner = Instance.new("UICorner")
+    indicatorCorner.CornerRadius = UDim.new(1, 0)
+    indicatorCorner.Parent = statusIndicator
+
+    local statusText = Instance.new("TextLabel")
+    statusText.Size = UDim2.new(0.8, 0, 1, 0)
+    statusText.Position = UDim2.new(0.15, 0, 0, 0)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = "비활성화"
+    statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    statusText.TextSize = 14
+    statusText.Font = Enum.Font.GothamMedium
+    statusText.Parent = statusFrame
+
+    local buttonContainer = Instance.new("Frame")
+    buttonContainer.Size = UDim2.new(0.9, 0, 0, 45)
+    buttonContainer.Position = UDim2.new(0.05, 0, 0, 135)
+    buttonContainer.BackgroundTransparency = 1
+    buttonContainer.Parent = contentContainer
+
+    local onButton = Instance.new("TextButton")
+    onButton.Size = UDim2.new(0.48, 0, 1, 0)
+    onButton.Position = UDim2.new(0, 0, 0, 0)
+    onButton.BackgroundColor3 = Color3.fromRGB(45, 120, 255)
+    onButton.Text = "활성화"
+    onButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    onButton.TextSize = 16
+    onButton.Font = Enum.Font.GothamBold
+    onButton.Parent = buttonContainer
+
+    local onCorner = Instance.new("UICorner")
+    onCorner.CornerRadius = UDim.new(0, 8)
+    onCorner.Parent = onButton
+
+    local offButton = Instance.new("TextButton")
+    offButton.Size = UDim2.new(0.48, 0, 1, 0)
+    offButton.Position = UDim2.new(0.52, 0, 0, 0)
+    offButton.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+    offButton.Text = "비활성화"
+    offButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    offButton.TextSize = 16
+    offButton.Font = Enum.Font.GothamBold
+    offButton.Parent = buttonContainer
+
+    local offCorner = Instance.new("UICorner")
+    offCorner.CornerRadius = UDim.new(0, 8)
+    offCorner.Parent = offButton
+
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    local dragInput = nil
+
+    local function updateDrag(input)
+        local delta = input.Position - dragStart
+        local targetPosition = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+
+        TweenService:Create(mainFrame, TweenInfo.new(0.1), {
+            Position = targetPosition
+        }):Play()
+    end
+
+    mainFrame.InputBegan:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or
+            input.UserInputType == Enum.UserInputType.Touch) and
+            input.Position.Y - mainFrame.AbsolutePosition.Y <= 40 then
+
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
     end)
-    coroutine.resume(chatThread)
+
+    mainFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updateDrag(input)
+        end
+    end)
+
+    local function createButtonEffect(button)
+        local originalColor = button.BackgroundColor3
+        local originalSize = button.Size
+        local originalPosition = button.Position
+        local isShrunk = false
+
+        button.MouseEnter:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.3), {
+                BackgroundColor3 = originalColor:Lerp(Color3.fromRGB(255, 255, 255), 0.2)
+            }):Play()
+        end)
+
+        button.MouseLeave:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.3), {
+                BackgroundColor3 = originalColor
+            }):Play()
+        end)
+
+        button.MouseButton1Down:Connect(function()
+            if not isShrunk then
+                isShrunk = true
+                TweenService:Create(button, TweenInfo.new(0.1), {
+                    Size = originalSize - UDim2.new(0, 4, 0, 4),
+                    Position = originalPosition + UDim2.new(0, 2, 0, 2)
+                }):Play()
+            end
+        end)
+
+        button.MouseButton1Up:Connect(function()
+            if isShrunk then
+                isShrunk = false
+                TweenService:Create(button, TweenInfo.new(0.1), {
+                    Size = originalSize,
+                    Position = originalPosition
+                }):Play()
+            end
+        end)
+    end
+
+    createButtonEffect(onButton)
+    createButtonEffect(offButton)
+
+    local originalSize = UDim2.new(0, 350, 0, 250)
+    local originalPos = mainFrame.Position
+
+    closeButton.MouseButton1Click:Connect(function()
+        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(mainFrame.Position.X.Scale, mainFrame.Position.X.Offset + 175, 
+                                mainFrame.Position.Y.Scale, mainFrame.Position.Y.Offset + 125)
+        }):Play()
+        
+        wait(0.3)
+        screenGui:Destroy()
+    end)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+    
+        if isMinimized then
+            originalPos = mainFrame.Position
+            
+            contentContainer.Visible = false
+            
+            TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.InOut), {
+                Size = UDim2.new(0, 350, 0, 40),
+                Position = UDim2.new(originalPos.X.Scale, originalPos.X.Offset, originalPos.Y.Scale, originalPos.Y.Offset + 105)
+            }):Play()
+        
+            TweenService:Create(minimizeButton, TweenInfo.new(0.3), {
+                Rotation = 180
+            }):Play()
+            minimizeButton.Text = "+"
+        else
+            TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
+                Size = originalSize,
+                Position = originalPos
+            }):Play()
+            
+            wait(0.2)
+            
+            contentContainer.Visible = true
+            
+            TweenService:Create(minimizeButton, TweenInfo.new(0.3), {
+                Rotation = 0
+            }):Play()
+            minimizeButton.Text = "-"
+        end
+    end)
+
+    onButton.MouseButton1Click:Connect(function()
+        targetPlayerName = targetInput.Text
+        isActive = true
+        statusIndicator.BackgroundColor3 = Color3.fromRGB(45, 200, 75)
+        statusText.Text = "활성화됨: " .. targetPlayerName
+
+        local flash = Instance.new("Frame")
+        flash.Size = UDim2.new(1, 0, 1, 0)
+        flash.BackgroundColor3 = Color3.fromRGB(45, 200, 75)
+        flash.BackgroundTransparency = 0
+        flash.Parent = statusFrame
+
+        local flashCorner = Instance.new("UICorner")
+        flashCorner.CornerRadius = UDim.new(0, 8)
+        flashCorner.Parent = flash
+
+        TweenService:Create(flash, TweenInfo.new(0.5), {
+            BackgroundTransparency = 1
+        }):Play()
+
+        game.Debris:AddItem(flash, 0.5)
+    end)
+
+    offButton.MouseButton1Click:Connect(function()
+        isActive = false
+        statusIndicator.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+        statusText.Text = "비활성화됨"
+
+        local flash = Instance.new("Frame")
+        flash.Size = UDim2.new(1, 0, 1, 0)
+        flash.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+        flash.BackgroundTransparency = 0
+        flash.Parent = statusFrame
+
+        local flashCorner = Instance.new("UICorner")
+        flashCorner.CornerRadius = UDim.new(0, 8)
+        flashCorner.Parent = flash
+
+        TweenService:Create(flash, TweenInfo.new(0.5), {
+            BackgroundTransparency = 1
+        }):Play()
+
+        game.Debris:AddItem(flash, 0.5)
+    end)
 end
 
-local function stopChat()
-    isChatting = false
+game.Players.PlayerAdded:Connect(function(newPlayer)
+    newPlayer.Chatted:Connect(function(message)
+        onChatMessage(newPlayer, message)
+    end)
+end)
+
+for _, existingPlayer in ipairs(game.Players:GetPlayers()) do
+    existingPlayer.Chatted:Connect(function(message)
+        onChatMessage(existingPlayer, message)
+    end)
 end
 
--- UI 생성
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 200, 0, 100)
-frame.Position = UDim2.new(0.5, -100, 0.5, -50)
-frame.BackgroundColor3 = Color3.new(1, 1, 1)
-
-local onButton = Instance.new("TextButton", frame)
-onButton.Size = UDim2.new(1, 0, 0.5, 0)
-onButton.Position = UDim2.new(0, 0, 0, 0)
-onButton.Text = "채팅 시작"
-onButton.BackgroundColor3 = Color3.new(0, 1, 0)
-
-local offButton = Instance.new("TextButton", frame)
-offButton.Size = UDim2.new(1, 0, 0.5, 0)
-offButton.Position = UDim2.new(0, 0, 0.5, 0)
-offButton.Text = "채팅 중지"
-offButton.BackgroundColor3 = Color3.new(1, 0, 0)
-
--- 버튼 클릭 이벤트
-onButton.MouseButton1Click:Connect(function()
-    if not isChatting then
-        startChat()
-        onButton.Text = "채팅 중지"
-    end
-end)
-
-offButton.MouseButton1Click:Connect(function()
-    if isChatting then
-        stopChat()
-        onButton.Text = "채팅 시작"
-    end
-end)
+createModernUI()
