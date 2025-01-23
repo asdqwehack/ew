@@ -7,44 +7,40 @@ local targetPlayerName = ""
 local isActive = false
 local isMinimized = false
 
-
 local function executeCommand(command)
-    if command == "Left face."  then
-        character:SetPrimaryPartCFrame(character.PrimaryPartCFrame * CFrame.Angles(0, math.rad(90), 0))
+    local targetCharacter = Players[targetPlayerName] and Players[targetPlayerName].Character
+    if not targetCharacter then return end
+
+    if command == "Left face." then
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(90), 0))
     elseif command == "Right face." then
-        character:SetPrimaryPartCFrame(character.PrimaryPartCFrame * CFrame.Angles(0, math.rad(-90), 0))
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(-90), 0))
     elseif command == "Center face." then
-        local currentPos = character.PrimaryPart.Position
+        local currentPos = targetCharacter.PrimaryPart.Position
         local cameraLookVector = workspace.CurrentCamera.CFrame.LookVector
         local targetLookVector = Vector3.new(cameraLookVector.X, 0, cameraLookVector.Z).Unit
-        character:SetPrimaryPartCFrame(CFrame.new(currentPos, currentPos + targetLookVector))
+        targetCharacter:SetPrimaryPartCFrame(CFrame.new(currentPos, currentPos + targetLookVector))
     elseif command == "Left incline." then
-        character:SetPrimaryPartCFrame(character.PrimaryPartCFrame * CFrame.Angles(0, math.rad(45), 0))
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(45), 0))
     elseif command == "Right incline." then
-        character:SetPrimaryPartCFrame(character.PrimaryPartCFrame * CFrame.Angles(0, math.rad(-45), 0))
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(-45), 0))
     elseif command == "About face." then
-        character:SetPrimaryPartCFrame(character.PrimaryPartCFrame * CFrame.Angles(0, math.rad(180), 0))
+        targetCharacter:SetPrimaryPartCFrame(targetCharacter.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(180), 0))
     end
 end
 
-local function isGlobalChat(message)
-    return not string.match(message, "^/team ")
-end
-
 local function onChatMessage(newPlayer, message)
-    if newPlayer.Name == targetPlayerName and isActive and isGlobalChat(message) then
+    if newPlayer.Name == targetPlayerName and isActive and not string.match(message, "^/team ") then
         wait(0.8)
         executeCommand(message)
     end
 end
-
 
 local function createModernUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "CommandUI"
     screenGui.Parent = player:WaitForChild("PlayerGui")
 
-    -- Main frame with adjusted width
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, 350, 0, 250)
@@ -53,7 +49,6 @@ local function createModernUI()
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
 
-
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 144, 255)),
@@ -61,7 +56,6 @@ local function createModernUI()
     })
     gradient.Rotation = 45
     gradient.Parent = mainFrame
-
 
     local gradientTween = TweenService:Create(gradient, TweenInfo.new(
         3,
@@ -74,11 +68,9 @@ local function createModernUI()
     })
     gradientTween:Play()
 
-  
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = mainFrame
-
 
     local titleBar = Instance.new("Frame")
     titleBar.Name = "TitleBar"
@@ -96,13 +88,12 @@ local function createModernUI()
     titleText.Size = UDim2.new(1, -100, 1, 0)
     titleText.Position = UDim2.new(0, 20, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.Text = "밥밥부대 자동  시험"
+    titleText.Text = "밥밥부대 자동 시험"
     titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleText.TextSize = 18
     titleText.Font = Enum.Font.GothamBold
     titleText.Parent = titleBar
 
- 
     local closeButton = Instance.new("TextButton")
     closeButton.Size = UDim2.new(0, 30, 0, 30)
     closeButton.Position = UDim2.new(1, -35, 0, 5)
@@ -123,7 +114,6 @@ local function createModernUI()
     minimizeButton.Font = Enum.Font.GothamBold
     minimizeButton.Parent = mainFrame
 
-   
     local function addCorner(button)
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, 6)
@@ -133,14 +123,12 @@ local function createModernUI()
     addCorner(closeButton)
     addCorner(minimizeButton)
 
-    
     local contentContainer = Instance.new("Frame")
     contentContainer.Name = "ContentContainer"
     contentContainer.Size = UDim2.new(1, 0, 1, -40)
     contentContainer.Position = UDim2.new(0, 0, 0, 40)
     contentContainer.BackgroundTransparency = 1
     contentContainer.Parent = mainFrame
-
 
     local inputFrame = Instance.new("Frame")
     inputFrame.Size = UDim2.new(0.9, 0, 0, 45)
@@ -166,7 +154,6 @@ local function createModernUI()
     targetInput.Font = Enum.Font.GothamMedium
     targetInput.Parent = inputFrame
 
-  
     local function autocompletePlayerName()
         local inputText = targetInput.Text:lower()
         if #inputText >= 3 then  
@@ -180,10 +167,8 @@ local function createModernUI()
         end
     end
 
-
     targetInput:GetPropertyChangedSignal("Text"):Connect(autocompletePlayerName)
 
- 
     local statusFrame = Instance.new("Frame")
     statusFrame.Size = UDim2.new(0.9, 0, 0, 40)
     statusFrame.Position = UDim2.new(0.05, 0, 0, 80)
@@ -216,14 +201,12 @@ local function createModernUI()
     statusText.Font = Enum.Font.GothamMedium
     statusText.Parent = statusFrame
 
-
     local buttonContainer = Instance.new("Frame")
     buttonContainer.Size = UDim2.new(0.9, 0, 0, 45)
     buttonContainer.Position = UDim2.new(0.05, 0, 0, 135)
     buttonContainer.BackgroundTransparency = 1
     buttonContainer.Parent = contentContainer
 
-    
     local onButton = Instance.new("TextButton")
     onButton.Size = UDim2.new(0.48, 0, 1, 0)
     onButton.Position = UDim2.new(0, 0, 0, 0)
@@ -238,7 +221,6 @@ local function createModernUI()
     onCorner.CornerRadius = UDim.new(0, 8)
     onCorner.Parent = onButton
 
-
     local offButton = Instance.new("TextButton")
     offButton.Size = UDim2.new(0.48, 0, 1, 0)
     offButton.Position = UDim2.new(0.52, 0, 0, 0)
@@ -252,7 +234,6 @@ local function createModernUI()
     local offCorner = Instance.new("UICorner")
     offCorner.CornerRadius = UDim.new(0, 8)
     offCorner.Parent = offButton
-
 
     local dragging = false
     local dragStart = nil
@@ -303,7 +284,6 @@ local function createModernUI()
         end
     end)
 
-  
     local function createButtonEffect(button)
         local originalColor = button.BackgroundColor3
         local originalSize = button.Size
@@ -346,11 +326,9 @@ local function createModernUI()
     createButtonEffect(onButton)
     createButtonEffect(offButton)
 
-    
     local originalSize = UDim2.new(0, 350, 0, 250)
     local originalPos = mainFrame.Position
 
-   
     closeButton.MouseButton1Click:Connect(function()
         TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
             Size = UDim2.new(0, 0, 0, 0),
@@ -366,25 +344,20 @@ local function createModernUI()
         isMinimized = not isMinimized
     
         if isMinimized then
-            
             originalPos = mainFrame.Position
-            
             
             contentContainer.Visible = false
             
-       
             TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.InOut), {
                 Size = UDim2.new(0, 350, 0, 40),
                 Position = UDim2.new(originalPos.X.Scale, originalPos.X.Offset, originalPos.Y.Scale, originalPos.Y.Offset + 105)
             }):Play()
-        
         
             TweenService:Create(minimizeButton, TweenInfo.new(0.3), {
                 Rotation = 180
             }):Play()
             minimizeButton.Text = "+"
         else
-           
             TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
                 Size = originalSize,
                 Position = originalPos
@@ -392,9 +365,7 @@ local function createModernUI()
             
             wait(0.2)
             
-           
             contentContainer.Visible = true
-            
             
             TweenService:Create(minimizeButton, TweenInfo.new(0.3), {
                 Rotation = 0
@@ -409,7 +380,6 @@ local function createModernUI()
         statusIndicator.BackgroundColor3 = Color3.fromRGB(45, 200, 75)
         statusText.Text = "활성화됨: " .. targetPlayerName
 
-        -- Activation effect animation
         local flash = Instance.new("Frame")
         flash.Size = UDim2.new(1, 0, 1, 0)
         flash.BackgroundColor3 = Color3.fromRGB(45, 200, 75)
@@ -432,7 +402,6 @@ local function createModernUI()
         statusIndicator.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
         statusText.Text = "비활성화됨"
 
-
         local flash = Instance.new("Frame")
         flash.Size = UDim2.new(1, 0, 1, 0)
         flash.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
@@ -451,7 +420,6 @@ local function createModernUI()
     end)
 end
 
-
 game.Players.PlayerAdded:Connect(function(newPlayer)
     newPlayer.Chatted:Connect(function(message)
         onChatMessage(newPlayer, message)
@@ -465,4 +433,3 @@ for _, existingPlayer in ipairs(game.Players:GetPlayers()) do
 end
 
 createModernUI()
-
