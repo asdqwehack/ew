@@ -2,10 +2,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local interval = 7.2 -- 메시지를 전송할 간격 (초)
-local isChatting = false -- 채팅 상태를 나타내는 변수
-local chatThread -- 채팅을 위한 스레드
-local lastMessage = nil -- 마지막으로 전송한 메시지
+local interval = 7.2 --간격임임
+local isChatting = false
+local chatThread 
+local lastMessage = nil
 
 local messages = {
     "쓰레기새끼야더러운새끼야버러지새끼야거러지새끼야스레기같은새기야좆같은새기",
@@ -83,10 +83,10 @@ local messageToSend
 repeat
 randomIndex = math.random(1, #messages)
 messageToSend = messages[randomIndex]
-until messageToSend ~= lastMessage -- 마지막 메시지와 다를 때까지 반복
+until messageToSend ~= lastMessage 
 
 sendMessage(messageToSend)
-lastMessage = messageToSend -- 현재 메시지를 마지막 메시지로 저장
+lastMessage = messageToSend 
 wait(interval)
 end
 end)
@@ -97,7 +97,7 @@ local function stopChat()
 isChatting = false
 end
 
--- UI 생성
+
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 200, 0, 100)
@@ -116,7 +116,7 @@ offButton.Position = UDim2.new(0, 0, 0.5, 0)
 offButton.Text = "채팅 중지"
 offButton.BackgroundColor3 = Color3.new(1, 0, 0)
 
--- 버튼 클릭 이벤트
+
 onButton.MouseButton1Click:Connect(function()
 if not isChatting then
 startChat()
